@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 400;
+    src: url("https://rsms.me/inter/font-files/Inter-Regular.woff2?v=3.7") format("woff2"), url("https://rsms.me/inter/font-files/Inter-Regular.woff?v=3.7") format("woff");
+}
+
+body {
+    margin: 0;
+    padding: 16px;
+    font: 12px "Inter", sans-serif;
+    user-select: none;
+}
+
+#drop-area {
+    background-color: #FAFAFA;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    text-align: center;
+    border-radius: 8px;
+    width: 208px;
+    height: 166px;
+    margin: 0 auto 16px;
+    padding: 80px 16px 16px;
+    box-sizing: border-box;
+    font-size: 11px;
+    color: rgba(0, 0, 0, 0.3);
+    background-position: 50% 32px;
+    background-repeat: no-repeat;
+    animation: changeIcon 4s step-end infinite;
+    cursor: pointer;
+}
+#drop-area.highlight {
+    border-color: #2F80ED;
+}
+#drop-area.icon-text {
+    background-image: url("data:image/svg+xml,%3Csvg width='40px' height='40px' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg stroke='none' stroke-width='1' fill='none' fill-rule='evenodd'%3E%3Cg stroke='%23BDBDBD' stroke-width='2'%3E%3Cpath d='M23,9 L13,9 C11.8954,9 11,9.89543 11,11 L11,29 C11,30.1046 11.8954,31 13,31 L27,31 C28.1046,31 29,30.1046 29,29 L29,15 M23,9 L29,15 M23,9 L23,14 C23,14.5523 23.4477,15 24,15 L29,15 M14,27 L26,27 M14,23 L26,23 M14,19 L26,19'%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); 
+}
+#drop-area.icon-image {
+    background-image: url("data:image/svg+xml,%3Csvg width='40px' height='40px' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg stroke='none' stroke-width='1' fill='none' fill-rule='evenodd'%3E%3Cg stroke='%23BDBDBD' stroke-width='2'%3E%3Cpath d='M9,25 L14.2929,19.7071 C14.6834,19.3166 15.3166,19.3166 15.7071,19.7071 L27,31 M27,16 C27,17.6569 25.6569,19 24,19 C22.3431,19 21,17.6569 21,16 C21,14.3431 22.3431,13 24,13 C25.6569,13 27,14.3431 27,16 Z M31,11 L31,29 C31,30.1046 30.1046,31 29,31 L11,31 C9.89543,31 9,30.1046 9,29 L9,11 C9,9.89543 9.89543,9 11,9 L29,9 C30.1046,9 31,9.89543 31,11 Z'%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.switch {
+    position: relative;
+}
+.switch .switch__toggle {
+    display: none;
+}
+.switch .switch__label {
+    position: relative;
+    padding-left: 32px;
+}
+.switch .switch__label::before {
+    position: absolute;
+    content: "";
+    top: 0;
+    left: 0;
+    width: 24px;
+    height: 14px;
+    border-radius: 7px;
+    background-color: #BDBDBD;
+    transition: .2s;
+}
+.switch .switch__label::after {
+    position: absolute;
+    content: "";
+    height: 10px;
+    width: 10px;
+    top: 2px;
+    left: 2px;
+    border-radius: 10px;
+    background-color: #FFFFFF;
+    transition: .2s;
+}
+.switch .switch__toggle:checked + .switch__label::before {
+    background-color: #2F80ED;
+}
+.switch .switch__toggle:checked + .switch__label::after {
+    transform: translateX(10px);
+}
+</style>
+</head>
+<body>
+<div id="drop-area"></div>
+<div class="switch">
+    <input class="switch__toggle" type="checkbox" id="randomOrder" checked>
+    <label class="switch__label" for="randomOrder" id="randomOrderLabel">Random Order ON</label>
+</div>
+<script>
+window.onmessage = (event) => {
+
+    const pluginMessage = event.data.pluginMessage;
+    const dataType = pluginMessage.type;
+    const layers = pluginMessage.layers;
+
+    // Random switch
+    let randomOrderCheckBox = document.getElementById('randomOrder');
+    let randomOrderLabel = document.getElementById('randomOrderLabel');
+    randomOrderCheckBox.onchange = function() {
+        if (this.checked === true) {
+            randomOrderLabel.textContent = 'Random Order ON';
+        } else {
+            randomOrderLabel.textContent = 'Random Order OFF';
+        }
+    }
+
+    // Browser data file
+    let dropArea = document.getElementById('drop-area');
+
+    if (dataType === 'text') {
+        dropArea.textContent = 'Click here to choose a text file, or drag it here.';
+        dropArea.classList.add('icon-text');
+    } else if (dataType === 'image') {
+        dropArea.textContent = 'Click here to choose some image files, or drag them here.';
+        dropArea.classList.add('icon-image');
+    }
+
+    // Drag and drop event
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    dropArea.addEventListener('drop', handleDrop, false);
+
+    function preventDefaults (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function highlight(e) {
+        dropArea.classList.add('highlight');
+    }
+
+    function unhighlight(e) {
+        dropArea.classList.remove('highlight');
+    }
+
+    function handleDrop(e) {
+        let files = e.dataTransfer.files;
+        console.log(files);
+        // files.forEach(file => {
+        //     console.log(file);
+        // });
+        // TODO: files.length
+    }
+
+    // Click event
+    dropArea.addEventListener('click', handleClick, false);
+
+    function handleClick(e) {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        if (dataType === 'text') {
+            fileInput.multiple = false;
+            fileInput.accept = '.txt';
+            fileInput.click();
+            // TODO: Read content of txt file
+            // fileInput.onchange = () => {
+        } else if (dataType === 'image') {
+            fileInput.multiple = true;
+            fileInput.accept = '.png, .jpg, jpeg, .gif';
+
+            // TODO: Image files to UintArray
+            fileInput.click();
+            // fileInput.onchange = () => {
+            // parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
+        }
+        
+    }
+}
+</script>
+</body>
+</html>
