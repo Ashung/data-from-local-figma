@@ -95,7 +95,7 @@ window.onmessage = (event) => {
 
     const pluginMessage = event.data.pluginMessage;
     const dataType = pluginMessage.type;
-    const layers = pluginMessage.layers;
+    const count = pluginMessage.count;
 
     // Random switch
     let randomOrderCheckBox = document.getElementById('randomOrder');
@@ -149,11 +149,32 @@ window.onmessage = (event) => {
 
     function handleDrop(e) {
         let files = e.dataTransfer.files;
-        console.log(files);
-        // files.forEach(file => {
-        //     console.log(file);
-        // });
-        // TODO: files.length
+        
+        if (dataType === 'text') {
+            if (files.length === 1) {
+                const file = files[0];
+                textArrayFromFile(file);
+            } else {
+                window.parent.postMessage({pluginMessage: {
+                    type: 'error',
+                    data: 'You can only drag and drop 1 txt file here.'
+                }}, '*');
+            }
+        } else if (dataType === 'image') {
+            console.log(files);
+            // Checking all files is image.
+            let allFileIsImage = Array.from(files).every(function(file) {
+                return ['image/png', 'image/jpeg', 'image/jpg'].includes(file.type);
+            });
+            if (allFileIsImage) {
+                imageDataFromFiles(files);
+            } else {
+                window.parent.postMessage({pluginMessage: {
+                    type: 'error',
+                    data: 'You can only drag and drop JPG or PNG file here.'
+                }}, '*');
+            }
+        }
     }
 
     // Click event
@@ -166,19 +187,114 @@ window.onmessage = (event) => {
             fileInput.multiple = false;
             fileInput.accept = '.txt';
             fileInput.click();
-            // TODO: Read content of txt file
-            // fileInput.onchange = () => {
+            fileInput.onchange = function() {
+                const file = fileInput.files[0];
+                textArrayFromFile(file);
+            };
         } else if (dataType === 'image') {
             fileInput.multiple = true;
-            fileInput.accept = '.png, .jpg, jpeg, .gif';
-
-            // TODO: Image files to UintArray
+            fileInput.accept = '.png, .jpg, jpeg';
             fileInput.click();
-            // fileInput.onchange = () => {
-            // parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
+            fileInput.onchange = function() {
+                const files = fileInput.files;
+                imageDataFromFiles(files);
+            };
         }
-        
     }
+
+    function imageDataFromFiles(files) {
+        const filesArray = sliceFileListWithLength(files, count);
+        const fileReaderTask = filesArray.map(function(file) {
+            return getImageDataFromFile(file);
+        });
+        Promise.all(fileReaderTask).then(function(images) {
+            const pluginMessage = {
+                type: 'image',
+                data: images
+            }
+            window.parent.postMessage({pluginMessage}, '*');
+        });
+    }
+
+    function textArrayFromFile(file) {
+        if (file.type === 'text/plain') {
+            const reader = new FileReader();
+            reader.onload = function() {
+                let content = reader.result;
+                content = content.split(/\n/);
+                content = content.map(function(item) {
+                    return item.trim();
+                });
+                content = content.filter(function(item) {
+                    return item !== '';
+                });
+                const pluginMessage = {
+                    type: 'text',
+                    data: sliceArrayWithLength(content, count)
+                }
+                window.parent.postMessage({pluginMessage}, '*');
+            };
+            reader.readAsText(file, 'utf-8');
+        } else {
+            window.parent.postMessage({pluginMessage: {
+                type: 'error',
+                data: 'No a text file.'
+            }}, '*');
+        }
+    }
+
+    function getImageDataFromFile(file) {
+        return new Promise(function(resolve, reject) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                resolve(new Uint8Array(reader.result));
+            }
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    function sliceArrayWithLength(array, length) {
+        let newArray = [];
+        while (newArray.length <= length) {
+            newArray = newArray.concat(array);
+        }
+        if (randomOrderCheckBox.checked) {
+            shuffle(newArray);
+        }
+        return newArray.slice(0, length);
+    }
+
+    function sliceFileListWithLength(files, length) {
+        let newArray = [];
+        if (length > files.length) {
+            for (let i = 0; i < files.length * Math.ceil(length / files.length); i++) {
+                newArray.push(files[i % files.length]);
+            }
+        } else {
+            for (let i = 0; i < files.length; i++) {
+                newArray.push(files[i]);
+            }
+        }
+        if (randomOrderCheckBox.checked) {
+            shuffle(newArray);
+        }
+        return newArray.slice(0, length);
+    }
+
+    function shuffle(array) {
+        let currentIndex = array.length;
+        let temporaryValue, randomIndex;
+        while (0 !== currentIndex) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex -= 1;
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+        }
+        return array;
+    }
+
 }
 </script>
 </body>
