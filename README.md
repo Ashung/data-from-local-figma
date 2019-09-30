@@ -1,3 +1,5 @@
+![](data_from_local.png)
+
 # Data From Local
 
 Figma plugin to insert data from local TXT file or JPG / PNG images.
