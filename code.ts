@@ -21,6 +21,7 @@ if (selection.length === 0) {
     }
     else {
         figma.notify('Only support text and shape layer, but don\'t select both of them.');
+        figma.closePlugin();
     }
 }
 
@@ -35,7 +36,6 @@ figma.ui.onmessage = msg => {
                 node.characters = msg.data[index];
             });
         });
-        figma.closePlugin();
     }
     // Image
     if (msg.type === 'image') {
@@ -48,12 +48,12 @@ figma.ui.onmessage = msg => {
             };
             (<GeometryMixin> node).fills = [paint];
         });
-        figma.closePlugin();
     }
     // Error
     if (msg.type === 'error') {
         figma.notify(msg.data);
     }
+    figma.closePlugin();
 };
 
 function getFontNamesFromLayers(layers: TextNode []): FontName [] {
