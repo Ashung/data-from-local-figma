@@ -14,7 +14,7 @@ Only support JPG and PNG files, you can insert image to any shape layer.
 
 ## Installation
 
-Go to [Figma plugins](https://www.figma.com/c/plugin/all) and search "Data From Local".
+https://www.figma.com/c/plugin/759249283654441170
 
 ## License
 

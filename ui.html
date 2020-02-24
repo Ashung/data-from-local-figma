@@ -7,17 +7,16 @@
     font-family: "Inter";
     font-style: normal;
     font-weight: 400;
+    font-display: fallback;
     src: url("https://rsms.me/inter/font-files/Inter-Regular.woff2?v=3.7") format("woff2"), url("https://rsms.me/inter/font-files/Inter-Regular.woff?v=3.7") format("woff");
 }
-
 body {
     margin: 0;
     padding: 16px;
     font: 12px "Inter", sans-serif;
     user-select: none;
 }
-
-#drop-area {
+#drop-area, #message {
     background-color: #FAFAFA;
     border: 2px solid rgba(0, 0, 0, 0.1);
     text-align: center;
@@ -43,7 +42,12 @@ body {
 #drop-area.icon-image {
     background-image: url("data:image/svg+xml,%3Csvg width='40px' height='40px' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg stroke='none' stroke-width='1' fill='none' fill-rule='evenodd'%3E%3Cg stroke='%23BDBDBD' stroke-width='2'%3E%3Cpath d='M9,25 L14.2929,19.7071 C14.6834,19.3166 15.3166,19.3166 15.7071,19.7071 L27,31 M27,16 C27,17.6569 25.6569,19 24,19 C22.3431,19 21,17.6569 21,16 C21,14.3431 22.3431,13 24,13 C25.6569,13 27,14.3431 27,16 Z M31,11 L31,29 C31,30.1046 30.1046,31 29,31 L11,31 C9.89543,31 9,30.1046 9,29 L9,11 C9,9.89543 9.89543,9 11,9 L29,9 C30.1046,9 31,9.89543 31,11 Z'%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
-
+#message {
+    background-color: transparent;
+    border-color: transparent;
+    cursor: default;
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0H40V40H0V0Z' fill='white'/%3E%3Cpath d='M20 15V20M31 20C31 26.0751 26.0751 31 20 31C13.9249 31 9 26.0751 9 20C9 13.9249 13.9249 9 20 9C26.0751 9 31 13.9249 31 20Z' stroke='%23BDBDBD' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='20' cy='24.5' r='1.5' fill='%23C4C4C4'/%3E%3C/svg%3E%0A");
+}
 .switch {
     position: relative;
 }
@@ -85,209 +89,222 @@ body {
 </style>
 </head>
 <body>
-<div id="drop-area"></div>
-<div class="switch">
+<div id="drop-area" style="display:none;"></div>
+<div id="switch-toggle" class="switch" style="display:none;">
     <input class="switch__toggle" type="checkbox" id="randomOrder" checked>
     <label class="switch__label" for="randomOrder" id="randomOrderLabel">Random Order ON</label>
 </div>
+<div id="message" style="display:none;"></div>
 <script>
-window.onmessage = (event) => {
+const dropArea = document.getElementById('drop-area');
+const switchToggle = document.getElementById('switch-toggle');
+const message = document.getElementById('message');
 
+// Random switch
+const randomOrderCheckBox = document.getElementById('randomOrder');
+const randomOrderLabel = document.getElementById('randomOrderLabel');
+randomOrderCheckBox.onchange = function() {
+    if (this.checked === true) {
+        randomOrderLabel.textContent = 'Random Order ON';
+    } else {
+        randomOrderLabel.textContent = 'Random Order OFF';
+    }
+};
+
+// Drag and drop event
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, preventDefaults, false);
+});
+
+['dragenter', 'dragover'].forEach(eventName => {
+    dropArea.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropArea.addEventListener(eventName, unhighlight, false);
+});
+
+dropArea.addEventListener('drop', handleDrop, false);
+
+window.onmessage = (event) => {
     const pluginMessage = event.data.pluginMessage;
     const dataType = pluginMessage.type;
     const count = pluginMessage.count;
 
-    // Random switch
-    let randomOrderCheckBox = document.getElementById('randomOrder');
-    let randomOrderLabel = document.getElementById('randomOrderLabel');
-    randomOrderCheckBox.onchange = function() {
-        if (this.checked === true) {
-            randomOrderLabel.textContent = 'Random Order ON';
-        } else {
-            randomOrderLabel.textContent = 'Random Order OFF';
-        }
-    }
+    if (dataType === 'message') {
+        dropArea.style.display = 'none';
+        switchToggle.style.display = 'none';
+        message.style.display = 'block';
+        message.textContent = pluginMessage.text;
+    } else {
+        dropArea.style.display = 'block';
+        switchToggle.style.display = 'block';
+        message.style.display = 'none';
 
-    // Browser data file
-    let dropArea = document.getElementById('drop-area');
-
-    if (dataType === 'text') {
-        dropArea.textContent = 'Click here to choose a text file, or drag it here.';
-        dropArea.classList.add('icon-text');
-    } else if (dataType === 'image') {
-        dropArea.textContent = 'Click here to choose some image files, or drag them here.';
-        dropArea.classList.add('icon-image');
-    }
-
-    // Drag and drop event
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, preventDefaults, false);
-    });
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, highlight, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-    dropArea.addEventListener(eventName, unhighlight, false);
-    });
-
-    dropArea.addEventListener('drop', handleDrop, false);
-
-    function preventDefaults (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    function highlight(e) {
-        dropArea.classList.add('highlight');
-    }
-
-    function unhighlight(e) {
-        dropArea.classList.remove('highlight');
-    }
-
-    function handleDrop(e) {
-        let files = e.dataTransfer.files;
-        
+        // Browser data file
         if (dataType === 'text') {
-            if (files.length === 1) {
-                const file = files[0];
-                textArrayFromFile(file);
-            } else {
-                window.parent.postMessage({pluginMessage: {
-                    type: 'error',
-                    data: 'You can only drag and drop 1 txt file here.'
-                }}, '*');
-            }
+            dropArea.textContent = 'Click here to choose a text file, or drag it here.';
+            dropArea.className = 'icon-text';
         } else if (dataType === 'image') {
-            // Checking all files is image.
-            let allFileIsImage = Array.from(files).every(function(file) {
-                return ['image/png', 'image/jpeg', 'image/jpg'].includes(file.type);
-            });
-            if (allFileIsImage) {
-                imageDataFromFiles(files);
-            } else {
-                window.parent.postMessage({pluginMessage: {
-                    type: 'error',
-                    data: 'You can only drag and drop JPG or PNG file here.'
-                }}, '*');
-            }
+            dropArea.textContent = 'Click here to choose some image files, or drag them here.';
+            dropArea.className = 'icon-image';
         }
-    }
 
-    // Click event
-    dropArea.addEventListener('click', handleClick, false);
+        dropArea.setAttribute('data-count', count);
 
-    function handleClick(e) {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        if (dataType === 'text') {
-            fileInput.multiple = false;
-            fileInput.accept = '.txt';
-            fileInput.click();
-            fileInput.onchange = function() {
-                const file = fileInput.files[0];
-                textArrayFromFile(file);
-            };
-        } else if (dataType === 'image') {
-            fileInput.multiple = true;
-            fileInput.accept = '.png, .jpg, jpeg';
-            fileInput.click();
-            fileInput.onchange = function() {
-                const files = fileInput.files;
-                imageDataFromFiles(files);
-            };
-        }
-    }
-
-    function imageDataFromFiles(files) {
-        const filesArray = sliceFileListWithLength(files, count);
-        const fileReaderTask = filesArray.map(function(file) {
-            return getImageDataFromFile(file);
-        });
-        Promise.all(fileReaderTask).then(function(images) {
-            const pluginMessage = {
-                type: 'image',
-                data: images
+        // Click event
+        dropArea.onclick = () => {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            if (dataType === 'text') {
+                fileInput.multiple = false;
+                fileInput.accept = '.txt';
+                fileInput.click();
+                fileInput.onchange = function() {
+                    const file = fileInput.files[0];
+                    textArrayFromFile(file, count, randomOrderCheckBox.checked);
+                };
+            } else if (dataType === 'image') {
+                fileInput.multiple = true;
+                fileInput.accept = '.png, .jpg, jpeg';
+                fileInput.click();
+                fileInput.onchange = function() {
+                    const files = fileInput.files;
+                    imageDataFromFiles(files, count, randomOrderCheckBox.checked);
+                };
             }
-            window.parent.postMessage({pluginMessage}, '*');
-        });
+            fileInput.remove();
+        };
     }
+}
 
-    function textArrayFromFile(file) {
-        if (file.type === 'text/plain') {
-            const reader = new FileReader();
-            reader.onload = function() {
-                let content = reader.result;
-                content = content.split(/\n/);
-                content = content.map(function(item) {
-                    return item.trim();
-                });
-                content = content.filter(function(item) {
-                    return item !== '';
-                });
-                const pluginMessage = {
-                    type: 'text',
-                    data: sliceArrayWithLength(content, count)
-                }
-                window.parent.postMessage({pluginMessage}, '*');
-            };
-            reader.readAsText(file, 'utf-8');
+function preventDefaults (e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function highlight(e) {
+    dropArea.classList.add('highlight');
+}
+
+function unhighlight(e) {
+    dropArea.classList.remove('highlight');
+}
+
+function handleDrop(e) {
+    let files = e.dataTransfer.files;
+    let count = parseInt(dropArea.getAttribute('data-count'));
+    if (dropArea.className === 'icon-text') {
+        if (files.length === 1) {
+            const file = files[0];
+            textArrayFromFile(file, count, randomOrderCheckBox.checked);
         } else {
             window.parent.postMessage({pluginMessage: {
                 type: 'error',
-                data: 'No a text file.'
+                data: 'You can only drag and drop 1 txt file here.'
+            }}, '*');
+        }
+    } else if (dropArea.className === 'icon-image') {
+        // Checking all files is image.
+        let allFileIsImage = Array.from(files).every(function(file) {
+            return ['image/png', 'image/jpeg', 'image/jpg'].includes(file.type);
+        });
+        if (allFileIsImage) {
+            imageDataFromFiles(files, count, randomOrderCheckBox.checked);
+        } else {
+            window.parent.postMessage({pluginMessage: {
+                type: 'error',
+                data: 'You can only drag and drop JPG or PNG file here.'
             }}, '*');
         }
     }
+}
 
-    function getImageDataFromFile(file) {
-        return new Promise(function(resolve, reject) {
-            const reader = new FileReader();
-            reader.onload = function() {
-                resolve(new Uint8Array(reader.result));
+function imageDataFromFiles(files, length, shuffle) {
+    const filesArray = sliceFileListWithLength(files, length, shuffle);
+    const fileReaderTask = filesArray.map(function(file) {
+        return getImageDataFromFile(file);
+    });
+    Promise.all(fileReaderTask).then(function(images) {
+        const pluginMessage = {
+            type: 'image',
+            data: images
+        }
+        window.parent.postMessage({pluginMessage}, '*');
+    });
+}
+
+function textArrayFromFile(file, length, shuffle) {
+    if (file.type === 'text/plain') {
+        const reader = new FileReader();
+        reader.onload = function() {
+            let content = reader.result;
+            content = content.split(/\n/);
+            content = content.map(function(item) {
+                return item.trim();
+            });
+            content = content.filter(function(item) {
+                return item !== '';
+            });
+            const pluginMessage = {
+                type: 'text',
+                data: sliceArrayWithLength(content, length, shuffle)
             }
-            reader.onerror = reject;
-            reader.readAsArrayBuffer(file);
-        });
+            window.parent.postMessage({pluginMessage}, '*');
+        };
+        reader.readAsText(file, 'utf-8');
+    } else {
+        window.parent.postMessage({pluginMessage: {
+            type: 'error',
+            data: 'No a text file.'
+        }}, '*');
     }
+}
 
-    function sliceArrayWithLength(array, length) {
-        let newArray = array.slice();
-        while (newArray.length <= length) {
-            newArray = newArray.concat(array);
+function getImageDataFromFile(file) {
+    return new Promise(function(resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            resolve(new Uint8Array(reader.result));
         }
-        if (randomOrderCheckBox.checked) {
-            shuffle(newArray);
-        }
-        return newArray.slice(0, length);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+function sliceArrayWithLength(array, length, shuffle) {
+    let newArray = array.slice();
+    while (newArray.length <= length) {
+        newArray = newArray.concat(array);
     }
-
-    function sliceFileListWithLength(files, length) {
-        let newArray = Array.from(files);
-        while (newArray.length <= length) {
-            newArray = newArray.concat(newArray);
-        }
-        if (randomOrderCheckBox.checked) {
-            shuffle(newArray);
-        }
-        return newArray.slice(0, length);
+    if (shuffle) {
+        shuffleArray(newArray);
     }
+    return newArray.slice(0, length);
+}
 
-    function shuffle(array) {
-        let currentIndex = array.length;
-        let temporaryValue, randomIndex;
-        while (0 !== currentIndex) {
-            randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex -= 1;
-            temporaryValue = array[currentIndex];
-            array[currentIndex] = array[randomIndex];
-            array[randomIndex] = temporaryValue;
-        }
-        return array;
+function sliceFileListWithLength(files, length, shuffle) {
+    let newArray = Array.from(files);
+    while (newArray.length <= length) {
+        newArray = newArray.concat(newArray);
     }
+    if (shuffle) {
+        shuffleArray(newArray);
+    }
+    return newArray.slice(0, length);
+}
 
+function shuffleArray(array) {
+    let currentIndex = array.length;
+    let temporaryValue, randomIndex;
+    while (0 !== currentIndex) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+    }
+    return array;
 }
 </script>
 </body>
