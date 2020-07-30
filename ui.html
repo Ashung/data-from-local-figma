@@ -166,7 +166,7 @@ window.onmessage = (event) => {
                 };
             } else if (dataType === 'image') {
                 fileInput.multiple = true;
-                fileInput.accept = '.png, .jpg, jpeg';
+                fileInput.accept = '.png, .jpg, .jpeg';
                 fileInput.click();
                 fileInput.onchange = function() {
                     const files = fileInput.files;
